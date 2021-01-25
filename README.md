@@ -5,6 +5,7 @@
 New features:
 <ul>
  <li>Added arrows</li>
+ <li>Better looking grid and points</li>
  <li>Grid can be turned on/off</li>
  <li>Added very simple export to .svg (doesn't support all shapes yet)</li>
  <li>Fixed camera when moving slowly</li>
