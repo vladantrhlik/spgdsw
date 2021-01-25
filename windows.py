@@ -32,7 +32,7 @@ class DrawingPanel(UIPanel):
         return pos
 
 class ToolBar(UIPanel):
-    def __init__(self, position, size,  ui_manager, modes, tools, window):
+    def __init__(self, position, size,  ui_manager, modes, tools, grid, window):
         super().__init__(pg.Rect(position, size), manager = ui_manager, object_id='#toobar', starting_layer_height = 5)
         self.modes = modes
         self.tools = tools
@@ -48,14 +48,21 @@ class ToolBar(UIPanel):
                 self.modesheight = 35*i+40 + 30
 
             self.options.append(but)
+        self.options[0].select()
 
-        self.selected = pygame_gui.elements.UIButton(relative_rect=pg.Rect((85, 8), (10,30)), text="", manager=ui_manager, container = self)
-        self.selected.rect = pg.Rect((85, 0 * 35 + 8), (10,30))
-        self.is_active = True
+        
+        #grid chheckbox
+        self.grid = grid
+        self.gridCheckbox = pygame_gui.elements.UIButton(relative_rect=pg.Rect((5, self.modesheight+5), (80, 30)), text="grid", manager=ui_manager, container = self)
+        self.gridCheckbox.select()
+
+        self.modesheight+=40
 
         #back/forward
         self.back = pygame_gui.elements.UIButton(relative_rect=pg.Rect((5, self.modesheight + 25), (40, 30)), text="←", manager=ui_manager, container = self)
         self.forward = pygame_gui.elements.UIButton(relative_rect=pg.Rect((45, self.modesheight + 25), (40, 30)), text="→", manager=ui_manager, container = self)
+
+        self.saveAsSvgButton = pygame_gui.elements.UIButton(relative_rect=pg.Rect((5, self.modesheight+60), (80, 30)), text="save", manager=ui_manager, container = self)
 
     def process_event(self, event):
         handled = super().process_event(event)
@@ -63,15 +70,24 @@ class ToolBar(UIPanel):
         if (event.type == pg.USEREVENT and event.user_type == pygame_gui.UI_BUTTON_PRESSED):
             for b in self.options:
                 if event.ui_element == b:
-                    print(b.text)
+                    for i in self.options: i.unselect()
+                    b.select()
                     self.window.changeMode(b.text)
-                    a = 8
-                    if b.text in self.tools: a = 43
-                    self.selected.rect = pg.Rect((85, self.options.index(b) * 35 + a), (10,30))
+                    
             if event.ui_element == self.back:
                 self.window.back()
             if event.ui_element == self.forward:
                 self.window.forward()
+
+            if event.ui_element == self.gridCheckbox:
+                if self.gridCheckbox.is_selected:
+                    self.gridCheckbox.unselect()
+                else:
+                    self.gridCheckbox.select()
+                self.grid.active = self.gridCheckbox.is_selected
+
+            if event.ui_element == self.saveAsSvgButton:
+                self.window.saveSvg()
         #event processes
         return handled
 

@@ -19,16 +19,24 @@ class Window:
         self.screenSize = [1280,720]
 
         self.screen = pg.display.set_mode(self.screenSize)
-        self.manager = pygame_gui.UIManager(self.screenSize, 'data/themes/theme_1.json')
+        self.manager = pygame_gui.UIManager(self.screenSize, 'theme.json')
         self.clock = pg.time.Clock()
 
-        self.modes = ["point", "line", "circle", "circle2", "rect","rect2","bezier"]
+        self.modes = ["point", "line", "circle", "circle2", "rect","rect2","bezier", "arrow"]
         self.tools = ["select", "move"]
         self.mode = "point"
 
+        #step = 10
+        self.canvasSize = [1000,1000]
+        self.grid = Grid(50, 25, self.canvasSize[0],self.canvasSize[1], self.screen)
+        self.camera = Camera(self.grid.step)
+
+
         #self.drawingWindow = DrawingPanel((100,0),(1180,720), self.manager)
-        self.toolBar = ToolBar((0,0), (100,720), self.manager, self.modes, self.tools, self)
+        self.toolBar = ToolBar((0,0), (100,720), self.manager, self.modes, self.tools, self.grid, self)
         self.objects = Objects()
+
+        self.exporter = Exporter()
 
         self.running = True
 
@@ -37,15 +45,12 @@ class Window:
         self.pointBuffer = []
         self.font = pg.font.SysFont('Verdana', 20)
 
-        self.canvasSize = [1000,1000]
+        
 
         self.selectionTool = SelectionTool(self.screen)
-        self.moveTool = MoveTool(self.screen)
+        self.moveTool = MoveTool(self.screen, self.grid, self.selectionTool)
         
-        #step = 10
-        self.grid = Grid(50, self.canvasSize[0],self.canvasSize[1], self.screen)
-        self.camera = Camera(10)
-
+        
 
         self.versions = [self.objects]
 
@@ -110,7 +115,7 @@ class Window:
                         break
 
     def handleShapes(self):
-        if self.mode in ["line","circle","rect","circle2","rect2"]:
+        if self.mode in ["line","circle","rect","circle2","rect2","arrow"]:
             if len(self.pointBuffer) > 2:
                 self.pointBuffer[0].buffering = False
                 self.pointBuffer.pop(0)
@@ -118,8 +123,11 @@ class Window:
             if len(self.pointBuffer) == 2:
                 a,b = self.pointBuffer
 
-                if self.mode == "line":
-                    line = Line([a,b], 0)
+                if self.mode in ["line", "arrow"]:
+                    if self.mode == "line":
+                        line = Line([a,b], 0)
+                    elif self.mode == "arrow":
+                        line = Line([a,b], 1)
                     if not self.objects.exists(line):
                         self.objects.add(line)
 
@@ -158,16 +166,23 @@ class Window:
 
         if self.mode == "select" and self.selectionTool.selecting:
             self.selectionTool.update(pos,s)
+        if self.mode in self.tools and not self.selectionTool.selecting and len(self.selectionTool.selected) > 0:
+            self.selectionTool.drawSelection(s, self.camera.position)
         self.screen.blit(s, (0,0))    # (0,0) are the top-left coordinates
+
+    def saveSvg(self):
+        print("saving")
+        self.exporter.save(self.objects, "svg")
 
     def update(self):
         drawingPos = list(pg.mouse.get_pos())
         mousePos = drawingPos.copy()
-        drawingPos[0] = round(drawingPos[0]/self.grid.unit) * self.grid.unit
-        drawingPos[1] = round(drawingPos[1]/self.grid.unit) * self.grid.unit
+
+        if self.grid.active:
+            drawingPos[0] = round(drawingPos[0]/self.grid.step) * self.grid.step
+            drawingPos[1] = round(drawingPos[1]/self.grid.step) * self.grid.step
 
         drawingPosNoCam = drawingPos.copy()
-
         drawingPos[0] -= self.camera.position[0] 
         drawingPos[1] -= self.camera.position[1] 
         
@@ -181,11 +196,10 @@ class Window:
             if mousePos[0] > self.toolBar.rect[2]: #jestli je mouse v okně
                 self.bufferPoints(event, drawingPos)
                 if self.mode == "point": self.handlePoints(event, drawingPos)
-                if self.mode == "select": self.selectionTool.handleInput(event, drawingPos, self.objects.listObjects("Point"))
+                if self.mode == "select": self.selectionTool.handleInput(event, drawingPosNoCam, self.objects.listObjects("Point"), self.camera.position)
                 if self.mode == "move": self.moveTool.handleInput(event, drawingPos, self.objects.listObjects("Point"))
 
-                self.camera.handleInput(event, mousePos)
-
+                self.camera.handleInput(event, mousePos, self.grid.active)
 
 
         self.handleShapes()
@@ -206,6 +220,7 @@ class Window:
         
 
         objectsSurface = pg.Surface(self.canvasSize, pg.SRCALPHA)
+        objectsSurface.fill((230,230,230))
         self.grid.draw(objectsSurface)
         for object in self.objects():
             object.draw(objectsSurface)
