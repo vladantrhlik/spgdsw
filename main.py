@@ -45,11 +45,10 @@ class Window:
         self.pointBuffer = []
         self.font = pg.font.SysFont('Verdana', 20)
 
-        
+        self.canDraw = True        
 
         self.selectionTool = SelectionTool(self.screen)
         self.moveTool = MoveTool(self.screen, self.grid, self.selectionTool)
-        
         
 
         self.versions = [self.objects]
@@ -193,7 +192,7 @@ class Window:
                 self.running = False
             if event.type == pg.KEYDOWN:
                 self.handleKeyboard(event)
-            if mousePos[0] > self.toolBar.rect[2]: #jestli je mouse v okně
+            if mousePos[0] > self.toolBar.rect[2] and self.canDraw: #jestli je mouse v okně
                 self.bufferPoints(event, drawingPos)
                 if self.mode == "point": self.handlePoints(event, drawingPos)
                 if self.mode == "select": self.selectionTool.handleInput(event, drawingPosNoCam, self.objects.listObjects("Point"), self.camera.position)
