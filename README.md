@@ -1,5 +1,5 @@
 # spgdsw
- Drawing software written in pygame (**s**hitty **p**y**g**ame **d**rawing **s**oftware)
+ Drawing software written in pygame (it's pretty shit)
 
 <h2>29.1.2021</h2>
 <ul>
